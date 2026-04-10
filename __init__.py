@@ -26,10 +26,13 @@
 
 # noinspection PyPep8Naming
 def classFactory(iface):  # pylint: disable=invalid-name
-    """Load bielefeldGeosuche class from file bielefeldGeosuche.
+    """Lädt die Plugin-Klasse bielefeldGeosuche und gibt eine Instanz zurück.
 
-    :param iface: A QGIS interface instance.
-    :type iface: QgsInterface
+    Args:
+        iface (QgsInterface): Eine QGIS-Interface-Instanz.
+
+    Returns:
+        bielefeldGeosuche: Eine neue Instanz des Plugins.
     """
     #
     from .bielefeld_geosuche import bielefeldGeosuche

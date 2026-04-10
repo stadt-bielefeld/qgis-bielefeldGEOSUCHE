@@ -1,3 +1,11 @@
+# -*- coding: utf-8 -*-
+"""Benutzerdefinierter Delegate für die hervorgehobene Darstellung von Suchergebnissen.
+
+Dieses Modul stellt einen Qt-Delegate bereit, der Einträge im
+Autovervollständigungs-Popup als HTML rendert und Suchbegriffe
+durch Fettschrift hervorhebt.
+"""
+
 import re
 
 from qgis.PyQt.QtWidgets import QStyledItemDelegate, QStyle
@@ -6,13 +14,36 @@ from qgis.PyQt.QtCore import Qt, QRectF
 
 from qgis.core import QgsMessageLog, Qgis
 
+
 class HighlightDelegate(QStyledItemDelegate):
+    """Delegate zur farblichen Hervorhebung von Suchbegriffen in der Ergebnisliste.
+
+    Rendert die Einträge des Autovervollständigungs-Popups als HTML und hebt
+    die eingegebenen Suchbegriffe durch Fettschrift hervor.
+    """
 
     def __init__(self, plugin, parent=None):
+        """Konstruktor.
+
+        Args:
+            plugin (bielefeldGeosuche): Referenz auf die Plugin-Instanz.
+            parent (QObject): Optionales Elternobjekt.
+        """
         super().__init__(parent)
         self.plugin = plugin
 
     def paint(self, painter, option, index):
+        """Zeichnet einen einzelnen Listeneintrag mit HTML-Formatierung.
+
+        Hebt Suchbegriffe im Anzeigetext fett hervor. Selektierte Einträge
+        werden mit der Systemhervorhebungsfarbe hinterlegt und vertikal
+        zentriert dargestellt.
+
+        Args:
+            painter (QPainter): Der QPainter zum Zeichnen des Eintrags.
+            option (QStyleOptionViewItem): Stiloptionen für das Element (Position, Zustand, Palette).
+            index (QModelIndex): Modellindex des darzustellenden Eintrags.
+        """
         text = index.data(Qt.DisplayRole)
         
         if len(text) > 50:
