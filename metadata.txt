@@ -1,0 +1,48 @@
+# This file contains metadata for your plugin.
+
+# This file should be included when you package your plugin.# Mandatory items:
+
+[general]
+name=bielefeldGEOSUCHE
+qgisMinimumVersion=3.0
+qgisMaximumVersion=3.99
+description=Official geosearch functionality, just for Bielefeld!
+version=1.0
+author=Marcel Tesch (620.12)
+email=marcel.tesch@bielefeld.de
+
+about=This Plugin brings the search functionality from the bielefeldGEOCLIENT and other Bielefeld services to QGIS. You can search for addresses, cadastre parcels, coordinates in EPSG:25832 and EPSG:4326, POIs, streets with all associated parcels and several other themes. <br>The results can include all geometry types: points, lines and polygons. The geosearch you need in Bielefeld :-)<br><br> For the development of this plugin the artificial intelligences ChatGPT and Microsoft Copilot has been used.<br><br>TODO:<br><ul><li>Support PyQT6 for QGIS 4</li></ul>
+
+tracker=https://github.com/stadt-bielefeld/qgis-bielefeldGEOSUCHE/issues
+repository=https://github.com/stadt-bielefeld/qgis-bielefeldGEOSUCHE
+# End of mandatory metadata
+
+# Recommended items:
+
+hasProcessingProvider=no
+# Uncomment the following line and add your changelog:
+# changelog=
+
+# Tags are comma separated with spaces allowed
+tags=python
+
+homepage=https://bielefeld01.de/geo/portal/geoportal.php
+category=Plugins
+icon=icon.png
+# experimental flag
+experimental=False
+
+# deprecated flag (applies to the whole plugin, not just a single version)
+deprecated=False
+
+# Since QGIS 3.8, a comma separated list of plugins to be installed
+# (or upgraded) can be specified.
+# Check the documentation for more information.
+# plugin_dependencies=
+
+Category of the plugin: Raster, Vector, Database or Web
+# category=
+
+# If the plugin can run on QGIS Server.
+server=False
+

@@ -1,0 +1,11 @@
+__pycache__
+help
+i18n
+scripts
+README.html
+README.txt
+Makefile
+plugin_upload.py
+pylintrc
+pb_tool.cfg
+icon_example.png
