@@ -21,15 +21,15 @@ from qgis.PyQt.QtGui import QIcon
 class bielefeldGeosucheDialogTest(unittest.TestCase):
     """Test rerources work."""
 
-    def setUp(self):
+    def setUp(self) -> None:
         """Runs before each test."""
         pass
 
-    def tearDown(self):
+    def tearDown(self) -> None:
         """Runs after each test."""
         pass
 
-    def test_icon_png(self):
+    def test_icon_png(self) -> None:
         """Test we can click OK."""
         path = ':/plugins/bielefeldGeosuche/icon.png'
         icon = QIcon(path)

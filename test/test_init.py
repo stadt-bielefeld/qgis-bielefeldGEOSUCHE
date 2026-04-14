@@ -27,7 +27,7 @@ class TestInit(unittest.TestCase):
 
     """
 
-    def test_read_init(self):
+    def test_read_init(self) -> None:
         """Test that the plugin __init__ will validate on plugins.qgis.org."""
 
         # You should update this list according to the latest in

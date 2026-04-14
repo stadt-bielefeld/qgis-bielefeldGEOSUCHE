@@ -26,15 +26,15 @@ QGIS_APP = get_qgis_app()
 class bielefeldGeosucheDockWidgetTest(unittest.TestCase):
     """Test dockwidget works."""
 
-    def setUp(self):
+    def setUp(self) -> None:
         """Runs before each test."""
         self.dockwidget = bielefeldGeosucheDockWidget(None)
 
-    def tearDown(self):
+    def tearDown(self) -> None:
         """Runs after each test."""
         self.dockwidget = None
 
-    def test_dockwidget_ok(self):
+    def test_dockwidget_ok(self) -> None:
         """Test we can click OK."""
         pass
 

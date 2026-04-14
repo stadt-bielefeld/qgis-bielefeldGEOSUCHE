@@ -1,8 +1,11 @@
 # coding=utf-8
 """Common functionality used by regression tests."""
 
+from __future__ import annotations
+
 import sys
 import logging
+from typing import Optional, Tuple
 
 
 LOGGER = logging.getLogger('QGIS')
@@ -12,7 +15,7 @@ PARENT = None
 IFACE = None
 
 
-def get_qgis_app():
+def get_qgis_app() -> tuple:
     """ Start one QGIS application to test against.
 
     :returns: Handle to QGIS app, canvas, iface and parent. If there are any

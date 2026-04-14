@@ -6,11 +6,17 @@ Autovervollständigungs-Popup als HTML rendert und Suchbegriffe
 durch Fettschrift hervorhebt.
 """
 
-import re
+from __future__ import annotations
 
-from qgis.PyQt.QtWidgets import QStyledItemDelegate, QStyle
-from qgis.PyQt.QtGui import QTextDocument
-from qgis.PyQt.QtCore import Qt, QRectF
+import re
+from typing import Optional, TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from .bielefeld_geosuche import bielefeldGeosuche
+
+from qgis.PyQt.QtWidgets import QStyledItemDelegate, QStyle, QStyleOptionViewItem
+from qgis.PyQt.QtGui import QTextDocument, QPainter
+from qgis.PyQt.QtCore import Qt, QObject, QRectF, QModelIndex
 
 from qgis.core import QgsMessageLog, Qgis
 
@@ -22,7 +28,7 @@ class HighlightDelegate(QStyledItemDelegate):
     die eingegebenen Suchbegriffe durch Fettschrift hervor.
     """
 
-    def __init__(self, plugin, parent=None):
+    def __init__(self, plugin: bielefeldGeosuche, parent: Optional[QObject] = None) -> None:
         """Konstruktor.
 
         Args:
@@ -32,7 +38,7 @@ class HighlightDelegate(QStyledItemDelegate):
         super().__init__(parent)
         self.plugin = plugin
 
-    def paint(self, painter, option, index):
+    def paint(self, painter: QPainter, option: QStyleOptionViewItem, index: QModelIndex) -> None:
         """Zeichnet einen einzelnen Listeneintrag mit HTML-Formatierung.
 
         Hebt Suchbegriffe im Anzeigetext fett hervor. Selektierte Einträge
