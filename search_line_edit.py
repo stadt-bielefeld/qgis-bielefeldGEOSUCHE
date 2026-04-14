@@ -50,11 +50,6 @@ class SearchLineEdit(QLineEdit):
             event (QMouseEvent): Das Mausereignis.
         """
         super().mouseReleaseEvent(event)
-        #QgsMessageLog.logMessage(
-        #    "mouseReleaseEvent() self.hasSelectedText(): " + self.selectedText(),
-        #    "bielefeldGeosuche",
-        #    Qgis.Info
-        #)
 
         # Wenn bereits Ergebnisse existieren → Popup wieder öffnen
         if (
@@ -71,11 +66,6 @@ class SearchLineEdit(QLineEdit):
             event (QFocusEvent): Das Fokusereignis.
         """
         super().focusInEvent(event)
-        #QgsMessageLog.logMessage(
-        #    "focusInEvent()",
-        #    "bielefeldGeosuche",
-        #    Qgis.Info
-        #)
 
 
     def focusOutEvent(self, event: QFocusEvent) -> None:
@@ -87,9 +77,4 @@ class SearchLineEdit(QLineEdit):
             event (QFocusEvent): Das Fokusereignis.
         """
         super().focusOutEvent(event)
-        #QgsMessageLog.logMessage(
-        #    "focusOutEvent()",
-        #    "bielefeldGeosuche",
-        #    Qgis.Info
-        #)
         # Popup darf sich normal schließen

@@ -160,7 +160,6 @@ class bielefeldGeosuche:
 
         # während des Tippens reagieren
         self.line_edit.textEdited.connect(self.on_text_edited)
-        self.line_edit.textChanged.connect(self.on_text_changed)
 
         self.toolbar.addWidget(self.line_edit)
 
@@ -212,12 +211,6 @@ class bielefeldGeosuche:
         Args:
             text (str): Der aktuell eingegebene Suchtext.
         """
-        #QgsMessageLog.logMessage(
-        #    "on_text_edited() " + text,
-        #    "bielefeldGeosuche",
-        #    Qgis.Info
-        #)
-
         # Alte Markierung entfernen
         self.clear_rubber_band()
 
@@ -232,25 +225,6 @@ class bielefeldGeosuche:
         self.typing_timer.start()
 
     # -------------------------
-    # Tipp-Event (Debounce)
-    # -------------------------
-    def on_text_changed(self, text: str) -> None:
-        """Wird ausgelöst, wenn sich der Inhalt des Suchfeldes ändert.
-
-        Reserviert für zukünftige Erweiterungen. Derzeit ohne Funktion.
-
-        Args:
-            text (str): Der aktuelle Inhalt des Suchfeldes.
-        """
-        #QgsMessageLog.logMessage(
-        #    "on_text_changed() " + text,
-        #    "bielefeldGeosuche",
-        #    Qgis.Info
-        #)
-        pass
-
-
-    # -------------------------
     # Webrequest
     # -------------------------
     def perform_search(self) -> None:
@@ -262,11 +236,6 @@ class bielefeldGeosuche:
         um Race Conditions bei mehreren gleichzeitigen Anfragen zu vermeiden.
         """
         search_text = self.current_search_term
-        #QgsMessageLog.logMessage(
-        #    "perform_search() " + search_text,
-        #    "bielefeldGeosuche",
-        #    Qgis.Info
-        #)
         if self.current_search_mode == "search" and not search_text:
             return
 
@@ -279,12 +248,6 @@ class bielefeldGeosuche:
         # Neue Request-ID erzeugen
         self.current_request_id += 1
         request_id = self.current_request_id
-
-        #QgsMessageLog.logMessage(
-        #    "perform_search() request_id " + str(request_id),
-        #    "bielefeldGeosuche",
-        #    Qgis.Info
-        #)
 
         # Infos für einen angepassten User-Agent sammeln
         qgis_version = Qgis.QGIS_VERSION
@@ -299,12 +262,6 @@ class bielefeldGeosuche:
             f"{os_info}; "
             f"Python {python_version})"
         )
-
-        #QgsMessageLog.logMessage(
-        #    "current_search_mode: " + self.current_search_mode + " - " + self.current_catalog_step,
-        #    "bielefeldGeosuche",
-        #    Qgis.Info
-        #)
 
         if self.current_search_mode == "search":
             self.current_catalog_step = ""
@@ -346,12 +303,6 @@ class bielefeldGeosuche:
         Args:
             reply (QNetworkReply): Das abgeschlossene Netzwerkantwort-Objekt.
         """
-        #QgsMessageLog.logMessage(
-        #    "handle_response()",
-        #    "bielefeldGeosuche",
-        #    Qgis.Info
-        #)
-
         # Wenn es nicht die aktuellste Anfrage ist → ignorieren
         if not hasattr(reply, "request_id"):
             return
@@ -374,11 +325,6 @@ class bielefeldGeosuche:
 
         reply.success = True
         if len(data) == 0:
-            #QgsMessageLog.logMessage(
-            #    "Für den Suchbegriff \"" + self.current_search_term + "\" wurden keine Ergebnisse gefunden.",
-            #    "bielefeldGeosuche",
-            #    Qgis.Info
-            #)
             reply.success = False
             reply.deleteLater()
             return
@@ -408,20 +354,8 @@ class bielefeldGeosuche:
                 labels.append(label)
                 self.search_results[label] = key
 
-        #QgsMessageLog.logMessage(
-        #    "Labels: " + str(labels),
-        #    "bielefeldGeosuche",
-        #    Qgis.Info
-        #)
-
         self.model.setStringList(labels)
         self.last_result_count = len(labels)
-
-        #QgsMessageLog.logMessage(
-        #    "self.last_result_count: " + str(self.last_result_count),
-        #    "bielefeldGeosuche",
-        #    Qgis.Info
-        #)
 
         # Dropdown automatisch öffnen
         self.completer.complete()
@@ -442,23 +376,11 @@ class bielefeldGeosuche:
         Args:
             text (str): Der ausgewählte Anzeigetext des Suchergebnisses.
         """
-        #QgsMessageLog.logMessage(
-        #    "result_selected() " + text,
-        #    "bielefeldGeosuche",
-        #    Qgis.Info
-        #)
-
         self.current_search_term = text
 
         if text not in self.search_results:
             return
         
-        #QgsMessageLog.logMessage(
-        #    "self.current_catalog_step " + self.current_catalog_step,
-        #    "bielefeldGeosuche",
-        #    Qgis.Info
-        #)
-
         if self.current_search_mode == "search" or (self.current_search_mode == "parcel" and self.current_catalog_step == "getflurstuecke") or (self.current_search_mode == "address" and self.current_catalog_step == "gethausnummern"):
             wkt_string = self.search_results[text]
             self.zoom_to_wkt(wkt_string)
@@ -498,12 +420,6 @@ class bielefeldGeosuche:
         Args:
             wkt_string (str): WKT-Geometrie-String im Koordinatensystem der Karte.
         """
-        #QgsMessageLog.logMessage(
-        #    "zoom_to_wkt()",
-        #    "bielefeldGeosuche",
-        #    Qgis.Info
-        #)
-
         # Fokus vom LineEdit entfernen
         self.line_edit.clearFocus()
 
@@ -515,12 +431,6 @@ class bielefeldGeosuche:
         if geom.isEmpty():
             QMessageBox.warning(None, "Fehler", "Ungültige WKT-Geometrie.")
             return
-
-        #QgsMessageLog.logMessage(
-        #    "Geometrie: " + str(geom),
-        #    "bielefeldGeosuche",
-        #    Qgis.Info
-        #)
 
         # Falls WKT in WGS84 vorliegt:
         #ource_crs = QgsCoordinateReferenceSystem("EPSG:4326")
@@ -623,14 +533,6 @@ class bielefeldGeosuche:
         Das Menü wird unterhalb der rechten Seite des Sucheingabefeldes
         positioniert.
         """
-        #QgsMessageLog.logMessage(
-        #    "show_search_menu()",
-        #    "bielefeldGeosuche",
-        #    Qgis.Info
-        #)
-        #action_rect = self.line_edit.actionPosition(
-        #    self.dropdown_action
-        #)
         global_pos = self.line_edit.mapToGlobal(
             self.line_edit.rect().bottomRight()
         )
@@ -648,28 +550,10 @@ class bielefeldGeosuche:
         Args:
             mode (str): Der neue Suchmodus ('search', 'parcel' oder 'address').
         """
-        #QgsMessageLog.logMessage(
-        #    "set_search_mode: " + mode,
-        #    "bielefeldGeosuche",
-        #    Qgis.Info
-        #)
         self.current_search_mode = mode
-
-        #QgsMessageLog.logMessage(
-        #    "self.line_edit.text() " + self.line_edit.text(),
-        #    "bielefeldGeosuche",
-        #    Qgis.Info
-        #)
 
         # Wenn der Suchmodus gewechselt wird, nmüssen die alte Suche und die alten Ergebnisse zurückgesetzt werden
         self.reset_completer()
-
-        #QgsMessageLog.logMessage(
-        #    "self.line_edit.text() " + self.line_edit.text(),
-        #    "bielefeldGeosuche",
-        #    Qgis.Info
-        #)
-        
 
         # Menü-Haken aktualisieren
         for action in self.search_mode_menu.actions():
@@ -745,11 +629,6 @@ class bielefeldGeosuche:
 
     def on_popup_closed(self) -> None:
         """Gibt den Fokus vom Sucheingabefeld zurück an den Kartenausschnitt."""
-        #QgsMessageLog.logMessage(
-        #    "on_popup_closed()",
-        #    "bielefeldGeosuche",
-        #    Qgis.Info
-        #)
         # Fokus vom LineEdit entfernen
         self.line_edit.clearFocus()
 
@@ -763,11 +642,6 @@ class bielefeldGeosuche:
         Ergebnisanzahl. Schließt das Popup, leert das Eingabefeld, entfernt
         eine vorhandene RubberBand-Markierung und leert das Datenmodell.
         """
-        #QgsMessageLog.logMessage(
-        #    "reset_completer()",
-        #    "bielefeldGeosuche",
-        #    Qgis.Info
-        #)
         self.current_search_term = ""
         self.gemarkung = ""
         self.anfangsbuchstabe = ""
