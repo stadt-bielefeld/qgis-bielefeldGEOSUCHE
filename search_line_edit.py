@@ -6,16 +6,8 @@ Das Autovervollständigungs-Popup wird beim Klick auf das Feld erneut geöffnet,
 sofern bereits Suchergebnisse vorliegen.
 """
 
-from __future__ import annotations
-
-from typing import TYPE_CHECKING
-
-if TYPE_CHECKING:
-    from .bielefeld_geosuche import bielefeldGeosuche
-
 from qgis.PyQt.QtWidgets import QLineEdit
 from qgis.PyQt.QtCore import Qt, QTimer
-from qgis.PyQt.QtGui import QMouseEvent, QFocusEvent
 
 from qgis.core import (
     QgsMessageLog,
@@ -30,7 +22,7 @@ class SearchLineEdit(QLineEdit):
     Feld klickt und bereits Suchergebnisse vorhanden sind.
     """
 
-    def __init__(self, plugin: bielefeldGeosuche, *args, **kwargs) -> None:
+    def __init__(self, plugin, *args, **kwargs):
         """Konstruktor.
 
         Args:
@@ -39,7 +31,7 @@ class SearchLineEdit(QLineEdit):
         super().__init__(*args, **kwargs)
         self.plugin = plugin
 
-    def mouseReleaseEvent(self, event: QMouseEvent) -> None:
+    def mouseReleaseEvent(self, event):
         """Öffnet das Autovervollständigungs-Popup bei Mausklick erneut.
 
         Wird ausgelöst, wenn der Benutzer das Eingabefeld anklickt. Falls
@@ -59,7 +51,7 @@ class SearchLineEdit(QLineEdit):
             QTimer.singleShot(0, lambda: self.plugin.completer.complete())
 
 
-    def focusInEvent(self, event: QFocusEvent) -> None:
+    def focusInEvent(self, event):
         """Behandelt das Eintreten des Tastaturfokus in das Eingabefeld.
 
         Args:
@@ -68,7 +60,7 @@ class SearchLineEdit(QLineEdit):
         super().focusInEvent(event)
 
 
-    def focusOutEvent(self, event: QFocusEvent) -> None:
+    def focusOutEvent(self, event):
         """Behandelt den Verlust des Tastaturfokus aus dem Eingabefeld.
 
         Das Autovervollständigungs-Popup darf sich normal schließen.
