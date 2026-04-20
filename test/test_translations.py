@@ -24,17 +24,17 @@ QGIS_APP = get_qgis_app()
 class SafeTranslationsTest(unittest.TestCase):
     """Test translations work."""
 
-    def setUp(self) -> None:
+    def setUp(self):
         """Runs before each test."""
         if 'LANG' in iter(os.environ.keys()):
             os.environ.__delitem__('LANG')
 
-    def tearDown(self) -> None:
+    def tearDown(self):
         """Runs after each test."""
         if 'LANG' in iter(os.environ.keys()):
             os.environ.__delitem__('LANG')
 
-    def test_qgis_translations(self) -> None:
+    def test_qgis_translations(self):
         """Test that translations work."""
         parent_path = os.path.join(__file__, os.path.pardir, os.path.pardir)
         dir_path = os.path.abspath(parent_path)

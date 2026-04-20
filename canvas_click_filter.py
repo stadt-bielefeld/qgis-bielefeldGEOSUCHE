@@ -5,13 +5,6 @@ Dieses Modul stellt einen Qt-Ereignisfilter bereit, der Mausklicks auf den
 Kartenausschnitt abfängt und eine vorhandene RubberBand-Markierung entfernt.
 """
 
-from __future__ import annotations
-
-from typing import TYPE_CHECKING
-
-if TYPE_CHECKING:
-    from .bielefeld_geosuche import bielefeldGeosuche
-
 from qgis.PyQt.QtCore import QObject, QEvent, Qt
 
 
@@ -22,7 +15,7 @@ class CanvasClickFilter(QObject):
     RubberBand-Markierung automatisch entfernt.
     """
 
-    def __init__(self, plugin: bielefeldGeosuche) -> None:
+    def __init__(self, plugin):
         """Konstruktor.
 
         Args:
@@ -31,7 +24,7 @@ class CanvasClickFilter(QObject):
         super().__init__()
         self.plugin = plugin
 
-    def eventFilter(self, obj: QObject, event: QEvent) -> bool:
+    def eventFilter(self, obj, event):
         """Filtert Qt-Ereignisse und reagiert auf Mausklicks.
 
         Entfernt die RubberBand-Markierung, wenn der Benutzer mit der linken
