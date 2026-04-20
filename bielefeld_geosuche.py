@@ -47,7 +47,8 @@ from qgis.utils import iface
 class bielefeldGeosuche:
     """QGIS-Plugin zur Geosuche in Bielefeld.
 
-    Stellt eine Symbolleiste mit einem Sucheingabefeld bereit, das über die
+    Stellt eine Symbolleiste mit einem Sucheingabefeld, zum Hinzufügen 
+    direkt in die Werkzeugleiste bereit, das über die
     bielefeldGEOSUCHE-API nach Adressen, Flurstücken, Koordinaten und
     weiteren Themen sucht. Suchergebnisse werden als Autovervollständigung
     angezeigt und auf der Karte als RubberBand-Markierung hervorgehoben.
@@ -60,6 +61,9 @@ class bielefeldGeosuche:
             iface (QgsInterface): Eine QGIS-Interface-Instanz, die den Zugriff
                 auf die QGIS-Anwendung zur Laufzeit ermöglicht.
         """
+        # Flag zur Angabe, ob Debug-Meldungen geloggt werden sollen
+        self.debug_log = False
+
         # Save reference to the QGIS interface
         self.iface = iface
         self.toolbar = None
@@ -75,20 +79,29 @@ class bielefeldGeosuche:
         # zum temporären Speichern des Suchbegriffes
         self.current_search_term = ""
 
+        # Anzahl der letzten Suchergebnisse
         self.last_result_count = 0
 
+        # Verfügbare Suchmodi
+        # search ist eine ganz normale Suche per Eingabe und Autovervollständigung
+        # die parcel und address Suche ist eine "Schritt für Schritt"-Suche. Hier werden nacheinander Ergebnisse aus einer vorgegebenen Liste ausgewählt.
         self.search_modes = {
             "bielefeldGEOSUCHE": "search",
             "Katalog-Suche Flurstück": "parcel",
             "Katalog-Suche Adresse": "address"
         }
 
+        # der Standard-Suchmouds ist search
         self.current_search_mode = "search"
+
+        # zum temporären Speichern des aktuellen bzw. nächsten Suchschrittes
         self.current_catalog_step = ""
 
+        # zur Anzeige der ersten ausgewählten Suchparameters bei der "Schritt für Schritt"-Suche
         self.gemarkung = ""
         self.anfangsbuchstabe = ""
 
+        # Erstellen eines Menüs zum Wechseln des Suchmodus
         menu = QMenu()
 
         for label, value in self.search_modes.items():
@@ -110,18 +123,22 @@ class bielefeldGeosuche:
         self.network_manager = QNetworkAccessManager()
         self.network_manager.finished.connect(self.handle_response)
 
+        # Completer für die Autovervollständigung von Suchergebnissen
         self.completer = None
         self.model = QStringListModel()
 
+        # zum temporären Speichern der aktuellen Suchergebnisse
         self.search_results = {}  # label → wkt mapping
+
+        # Timer, für das Absenden einer Suchanfrage an den Suchdienst, nachdem im Text-Eingabefeld getippt wurde
+        # Sinnvoll zur Reduzierung von ausgehenden Such-Requests. Gibt dem Nutzer die Möglichkeit einen Suchterm
+        # zu formulieren, ohne dass bereits nach jedem getippten Buchstaben Such-Requests ausgeführt werden.
         self.typing_timer = QTimer()
         self.typing_timer.setInterval(300)  # 300ms debounce
         self.typing_timer.setSingleShot(True)
         self.typing_timer.timeout.connect(self.perform_search)
 
-    # -------------------------
-    # GUI
-    # -------------------------
+
     def initGui(self):
         """Erstellt und registriert die grafischen Bedienelemente des Plugins.
 
@@ -132,6 +149,7 @@ class bielefeldGeosuche:
         self.toolbar = QToolBar("bielefeldGEOSUCHE")
         self.iface.addToolBar(self.toolbar)
 
+        # das Herzstück der Suche, das Sucheingabefeld
         self.line_edit = SearchLineEdit(self)
         self.line_edit.setPlaceholderText("bielefeldGEOSUCHE...")
         self.line_edit.setMaximumWidth(250)
@@ -144,6 +162,7 @@ class bielefeldGeosuche:
         normal_color = palette.color(palette.Text)
         hover_color = palette.color(palette.Highlight)
 
+        # Icon zum Aufrufen des Menüs zur Auswahl des Suchmodus
         self.icon_normal = self.create_text_icon("▾", font, normal_color)
         self.icon_active = self.create_text_icon("▾", font, hover_color)
 
@@ -163,12 +182,14 @@ class bielefeldGeosuche:
         # Completer
         self.completer = QCompleter()
         self.completer.setModel(self.model)
+        # der Completer soll keine Ergebnisse filtern, es sollen alle Ergebnisse angezeigt werden.
         #self.completer.setFilterMode(Qt.MatchWildcard)
         self.completer.setCaseSensitivity(Qt.CaseInsensitive)
         self.completer.activated.connect(self.result_selected)
         self.completer.setCompletionMode(QCompleter.UnfilteredPopupCompletion)
         self.completer.setWrapAround(True)
         
+        # zur benutzerdefinierten Formatierung von Suchergebnissen
         self.delegate = HighlightDelegate(self)
         self.completer.popup().setItemDelegate(self.delegate)
         self.completer.popup().setWordWrap(False)
@@ -176,12 +197,11 @@ class bielefeldGeosuche:
 
         self.line_edit.setCompleter(self.completer)
 
+        # Methode um Klicks in die Karte zu registrieren, um bestehende Rubberband Markierungen zu entfernen
         self.click_filter = CanvasClickFilter(self)
         self.iface.mapCanvas().viewport().installEventFilter(self.click_filter)
 
-    # -----------------------------
-    # Plugin entfernen
-    # -----------------------------
+
     def unload(self):
         """Entfernt das Plugin und bereinigt alle registrierten Ressourcen.
 
@@ -195,9 +215,7 @@ class bielefeldGeosuche:
             self.toolbar.hide()
             self.toolbar.setParent(None)
 
-    # -------------------------
-    # Tipp-Event (Debounce)
-    # -------------------------
+
     def on_text_edited(self, text):
         """Reagiert auf Benutzereingaben im Suchfeld mit Entprellungs-Logik.
 
@@ -208,11 +226,12 @@ class bielefeldGeosuche:
         Args:
             text (str): Der aktuell eingegebene Suchtext.
         """
-        #QgsMessageLog.logMessage(
-        #    "on_text_edited() " + text,
-        #    "bielefeldGeosuche",
-        #    Qgis.Info
-        #)
+        if self.debug_log:
+            QgsMessageLog.logMessage(
+                "on_text_edited() " + text,
+                "bielefeldGeosuche",
+                Qgis.Info
+            )
 
         # Alte Markierung entfernen
         self.clear_rubber_band()
@@ -220,16 +239,16 @@ class bielefeldGeosuche:
         # Suchbegriff merken
         self.current_search_term = text
 
+        # Wenn Text leer, Completer zurücksetzen
         if len(text) == 0:
             self.reset_completer()
 
+        # Wenn Text kürzer als 3 Zeichen, nichts tun
         if len(text) < 3:
             return
         self.typing_timer.start()
 
-    # -------------------------
-    # Tipp-Event (Debounce)
-    # -------------------------
+
     def on_text_changed(self, text: str) -> None:
         """Wird ausgelöst, wenn sich der Inhalt des Suchfeldes ändert.
 
@@ -238,17 +257,14 @@ class bielefeldGeosuche:
         Args:
             text (str): Der aktuelle Inhalt des Suchfeldes.
         """
-        #QgsMessageLog.logMessage(
-        #    "on_text_changed() " + text,
-        #    "bielefeldGeosuche",
-        #    Qgis.Info
-        #)
-        pass
+        if self.debug_log:
+            QgsMessageLog.logMessage(
+                "on_text_changed() " + text,
+                "bielefeldGeosuche",
+                Qgis.Info
+            )
 
 
-    # -------------------------
-    # Webrequest
-    # -------------------------
     def perform_search(self):
         """Sendet eine asynchrone Suchanfrage an die bielefeldGEOSUCHE-API.
 
@@ -258,11 +274,12 @@ class bielefeldGeosuche:
         um Race Conditions bei mehreren gleichzeitigen Anfragen zu vermeiden.
         """
         search_text = self.current_search_term
-        #QgsMessageLog.logMessage(
-        #    "perform_search() " + search_text,
-        #    "bielefeldGeosuche",
-        #    Qgis.Info
-        #)
+        if self.debug_log:
+            QgsMessageLog.logMessage(
+                "perform_search() " + search_text,
+                "bielefeldGeosuche",
+                Qgis.Info
+            )
         if self.current_search_mode == "search" and not search_text:
             return
 
@@ -276,11 +293,12 @@ class bielefeldGeosuche:
         self.current_request_id += 1
         request_id = self.current_request_id
 
-        #QgsMessageLog.logMessage(
-        #    "perform_search() request_id " + str(request_id),
-        #    "bielefeldGeosuche",
-        #    Qgis.Info
-        #)
+        if self.debug_log:
+            QgsMessageLog.logMessage(
+                "perform_search() request_id " + str(request_id),
+                "bielefeldGeosuche",
+                Qgis.Info
+            )
 
         # Infos für einen angepassten User-Agent sammeln
         qgis_version = Qgis.QGIS_VERSION
@@ -296,12 +314,14 @@ class bielefeldGeosuche:
             f"Python {python_version})"
         )
 
-        #QgsMessageLog.logMessage(
-        #    "current_search_mode: " + self.current_search_mode + " - " + self.current_catalog_step,
-        #    "bielefeldGeosuche",
-        #    Qgis.Info
-        #)
+        if self.debug_log:
+            QgsMessageLog.logMessage(
+                "current_search_mode: " + self.current_search_mode + " - " + self.current_catalog_step,
+                "bielefeldGeosuche",
+                Qgis.Info
+            )
 
+        # Zusammensetzen der URLs je nach aktuellem Suchmodus
         if self.current_search_mode == "search":
             self.current_catalog_step = ""
             url = QUrl(f"https://stadtplan.bielefeld.de/search/?maxresults=20&term={search_text}")
@@ -316,7 +336,7 @@ class bielefeldGeosuche:
                 key = self.search_results[search_text]
             url = QUrl(f"https://stadtplan.bielefeld.de/search/?catalog={self.current_catalog_step}&term={key}")
 
-        
+        # URL absetzen
         request = QNetworkRequest(url)
         request.setRawHeader(
             b"User-Agent",
@@ -329,9 +349,7 @@ class bielefeldGeosuche:
         reply.request_id = request_id
         self.current_reply = reply
 
-    # -------------------------
-    # Antwort verarbeiten
-    # -------------------------
+
     def handle_response(self, reply):
         """Verarbeitet die Antwort einer abgeschlossenen Netzwerkanfrage.
 
@@ -342,11 +360,12 @@ class bielefeldGeosuche:
         Args:
             reply (QNetworkReply): Das abgeschlossene Netzwerkantwort-Objekt.
         """
-        #QgsMessageLog.logMessage(
-        #    "handle_response()",
-        #    "bielefeldGeosuche",
-        #    Qgis.Info
-        #)
+        if self.debug_log:
+            QgsMessageLog.logMessage(
+                "handle_response()",
+                "bielefeldGeosuche",
+                Qgis.Info
+            )
 
         # Wenn es nicht die aktuellste Anfrage ist → ignorieren
         if not hasattr(reply, "request_id"):
@@ -370,11 +389,12 @@ class bielefeldGeosuche:
 
         reply.success = True
         if len(data) == 0:
-            #QgsMessageLog.logMessage(
-            #    "Für den Suchbegriff \"" + self.current_search_term + "\" wurden keine Ergebnisse gefunden.",
-            #    "bielefeldGeosuche",
-            #    Qgis.Info
-            #)
+            if self.debug_log:
+                QgsMessageLog.logMessage(
+                    "Für den Suchbegriff \"" + self.current_search_term + "\" wurden keine Ergebnisse gefunden.",
+                    "bielefeldGeosuche",
+                    Qgis.Info
+                )
             reply.success = False
             reply.deleteLater()
             return
@@ -382,6 +402,7 @@ class bielefeldGeosuche:
         labels = []
         self.search_results.clear()
 
+        # Suchergebnisse auslesen und für Auswahl aufbereiten
         if self.current_search_mode == "search" or (self.current_search_mode == "parcel" and self.current_catalog_step == "getflurstuecke") or (self.current_search_mode == "address" and self.current_catalog_step == "gethausnummern"):
             for item in data:
                 label = item["label"]# + " - " + str(item["sml"])
@@ -404,29 +425,29 @@ class bielefeldGeosuche:
                 labels.append(label)
                 self.search_results[label] = key
 
-        #QgsMessageLog.logMessage(
-        #    "Labels: " + str(labels),
-        #    "bielefeldGeosuche",
-        #    Qgis.Info
-        #)
+        if self.debug_log:
+            QgsMessageLog.logMessage(
+                "Labels: " + str(labels),
+                "bielefeldGeosuche",
+                Qgis.Info
+            )
 
         self.model.setStringList(labels)
         self.last_result_count = len(labels)
 
-        #QgsMessageLog.logMessage(
-        #    "self.last_result_count: " + str(self.last_result_count),
-        #    "bielefeldGeosuche",
-        #    Qgis.Info
-        #)
+        if self.debug_log:
+            QgsMessageLog.logMessage(
+                "self.last_result_count: " + str(self.last_result_count),
+                "bielefeldGeosuche",
+                Qgis.Info
+            )
 
         # Dropdown automatisch öffnen
         self.completer.complete()
 
         reply.deleteLater()
 
-    # -------------------------
-    # Auswahl eines Ergebnisses
-    # -------------------------
+
     def result_selected(self, text):
         """Verarbeitet die Auswahl eines Suchergebnisses aus dem Autovervollständiger.
 
@@ -438,23 +459,28 @@ class bielefeldGeosuche:
         Args:
             text (str): Der ausgewählte Anzeigetext des Suchergebnisses.
         """
-        #QgsMessageLog.logMessage(
-        #    "result_selected() " + text,
-        #    "bielefeldGeosuche",
-        #    Qgis.Info
-        #)
+        if self.debug_log:
+            QgsMessageLog.logMessage(
+                "result_selected() " + text,
+                "bielefeldGeosuche",
+                Qgis.Info
+            )
 
+        # Aktuell ausgewählten Suchbegriff setzen
         self.current_search_term = text
 
         if text not in self.search_results:
             return
         
-        #QgsMessageLog.logMessage(
-        #    "self.current_catalog_step " + self.current_catalog_step,
-        #    "bielefeldGeosuche",
-        #    Qgis.Info
-        #)
+        if self.debug_log:
+            QgsMessageLog.logMessage(
+                "self.current_catalog_step " + self.current_catalog_step,
+                "bielefeldGeosuche",
+                Qgis.Info
+            )
 
+        # entweder auf das aktuelle Suchergebnis zoomen oder den aktuellen Suchschritt ermitteln 
+        # und für die Katalog-Suche den nächsten Suchschritt setzen und die Suche erneut starten
         if self.current_search_mode == "search" or (self.current_search_mode == "parcel" and self.current_catalog_step == "getflurstuecke") or (self.current_search_mode == "address" and self.current_catalog_step == "gethausnummern"):
             wkt_string = self.search_results[text]
             self.zoom_to_wkt(wkt_string)
@@ -479,10 +505,6 @@ class bielefeldGeosuche:
             self.perform_search()
 
         
-
-    # -----------------------------
-    # Auf WKT zoomen
-    # -----------------------------
     def zoom_to_wkt(self, wkt_string):
         """Zoomt auf eine WKT-Geometrie und stellt sie als RubberBand dar.
 
@@ -494,48 +516,40 @@ class bielefeldGeosuche:
         Args:
             wkt_string (str): WKT-Geometrie-String im Koordinatensystem der Karte.
         """
-        #QgsMessageLog.logMessage(
-        #    "zoom_to_wkt()",
-        #    "bielefeldGeosuche",
-        #    Qgis.Info
-        #)
+        if self.debug_log:
+            QgsMessageLog.logMessage(
+                "zoom_to_wkt()",
+                "bielefeldGeosuche",
+                Qgis.Info
+            )
 
         # Fokus vom LineEdit entfernen
         self.line_edit.clearFocus()
 
-        # Optional: Fokus explizit zurück zur Karte
+        # Fokus explizit zurück zur Karte
         self.iface.mapCanvas().setFocus()
 
+        # Geometrie aus WKT erstellen
         geom = QgsGeometry.fromWkt(wkt_string)
 
         if geom.isEmpty():
             QMessageBox.warning(None, "Fehler", "Ungültige WKT-Geometrie.")
             return
 
-        #QgsMessageLog.logMessage(
-        #    "Geometrie: " + str(geom),
-        #    "bielefeldGeosuche",
-        #    Qgis.Info
-        #)
+        if self.debug_log:
+            QgsMessageLog.logMessage(
+                "Geometrie: " + str(geom),
+                "bielefeldGeosuche",
+                Qgis.Info
+            )
 
-        # Falls WKT in WGS84 vorliegt:
-        #ource_crs = QgsCoordinateReferenceSystem("EPSG:4326")
-        #dest_crs = self.iface.mapCanvas().mapSettings().destinationCrs()
-
-        #if source_crs != dest_crs:
-        #    transform = QgsCoordinateTransform(
-        #        source_crs,
-        #        dest_crs,
-        #        QgsProject.instance()
-        #    )
-        #    geom.transform(transform)
-
+        # Extent ermitteln
         extent = geom.boundingBox()
 
         # Alte Markierung entfernen
         self.clear_rubber_band()
 
-        # Neue RubberBand erzeugen
+        # Neues RubberBand erzeugen
         geometry_type = QgsWkbTypes.geometryType(geom.wkbType())
 
         self.rubber_band = QgsRubberBand(
@@ -567,9 +581,7 @@ class bielefeldGeosuche:
         self.iface.mapCanvas().setExtent(extent)
         self.iface.mapCanvas().refresh()
 
-    # -----------------------------
-    # RubberBand sauber zurücksetzen
-    # -----------------------------
+
     def clear_rubber_band(self):
         """Entfernt die aktuelle RubberBand-Markierung und aktualisiert die Karte."""
         if self.rubber_band:
@@ -577,9 +589,7 @@ class bielefeldGeosuche:
             self.rubber_band = None
             self.iface.mapCanvas().refresh()
 
-    # -----------------------------
-    # Lese die aktuelle Version dieses QGIS Plugins aus
-    # -----------------------------
+
     def get_plugin_version(self):
         """Liest die Versionsnummer des Plugins aus der metadata.txt aus.
 
@@ -595,9 +605,6 @@ class bielefeldGeosuche:
         return config.get("general", "version", fallback="unknown")
     
 
-    # -----------------------------
-    # Lese den Namen dieses QGIS Plugins aus
-    # -----------------------------
     def get_plugin_name(self):
         """Liest den Namen des Plugins aus der metadata.txt aus.
 
@@ -619,14 +626,13 @@ class bielefeldGeosuche:
         Das Menü wird unterhalb der rechten Seite des Sucheingabefeldes
         positioniert.
         """
-        #QgsMessageLog.logMessage(
-        #    "show_search_menu()",
-        #    "bielefeldGeosuche",
-        #    Qgis.Info
-        #)
-        #action_rect = self.line_edit.actionPosition(
-        #    self.dropdown_action
-        #)
+        if self.debug_log:
+            QgsMessageLog.logMessage(
+                "show_search_menu()",
+                "bielefeldGeosuche",
+                Qgis.Info
+            )
+
         global_pos = self.line_edit.mapToGlobal(
             self.line_edit.rect().bottomRight()
         )
@@ -644,28 +650,30 @@ class bielefeldGeosuche:
         Args:
             mode (str): Der neue Suchmodus ('search', 'parcel' oder 'address').
         """
-        #QgsMessageLog.logMessage(
-        #    "set_search_mode: " + mode,
-        #    "bielefeldGeosuche",
-        #    Qgis.Info
-        #)
+        if self.debug_log:
+            QgsMessageLog.logMessage(
+                "set_search_mode: " + mode,
+                "bielefeldGeosuche",
+                Qgis.Info
+            )
         self.current_search_mode = mode
 
-        #QgsMessageLog.logMessage(
-        #    "self.line_edit.text() " + self.line_edit.text(),
-        #    "bielefeldGeosuche",
-        #    Qgis.Info
-        #)
+        if self.debug_log:
+            QgsMessageLog.logMessage(
+                "self.line_edit.text() " + self.line_edit.text(),
+                "bielefeldGeosuche",
+                Qgis.Info
+            )
 
         # Wenn der Suchmodus gewechselt wird, nmüssen die alte Suche und die alten Ergebnisse zurückgesetzt werden
         self.reset_completer()
 
-        #QgsMessageLog.logMessage(
-        #    "self.line_edit.text() " + self.line_edit.text(),
-        #    "bielefeldGeosuche",
-        #    Qgis.Info
-        #)
-        
+        if self.debug_log:
+            QgsMessageLog.logMessage(
+                "self.line_edit.text() " + self.line_edit.text(),
+                "bielefeldGeosuche",
+                Qgis.Info
+            )
 
         # Menü-Haken aktualisieren
         for action in self.search_mode_menu.actions():
@@ -719,7 +727,6 @@ class bielefeldGeosuche:
         fm = QFontMetrics(font)
 
         text_width = fm.horizontalAdvance(text)
-        #text_height = fm.height()
 
         x = (size - text_width) / 2
 
@@ -731,26 +738,32 @@ class bielefeldGeosuche:
 
         return QIcon(pixmap)
 
+
     def on_menu_open(self):
         """Wechselt das Dropdown-Symbol zur aktiven Darstellung beim Öffnen des Menüs."""
         self.dropdown_action.setIcon(self.icon_active)
+
 
     def on_menu_close(self):
         """Stellt das Dropdown-Symbol auf die normale Darstellung zurück."""
         self.dropdown_action.setIcon(self.icon_normal)
 
+
     def on_popup_closed(self):
         """Gibt den Fokus vom Sucheingabefeld zurück an den Kartenausschnitt."""
-        #QgsMessageLog.logMessage(
-        #    "on_popup_closed()",
-        #    "bielefeldGeosuche",
-        #    Qgis.Info
-        #)
+        if self.debug_log:
+            QgsMessageLog.logMessage(
+                "on_popup_closed()",
+                "bielefeldGeosuche",
+                Qgis.Info
+            )
+        
         # Fokus vom LineEdit entfernen
         self.line_edit.clearFocus()
 
-        # Optional: Fokus explizit zurück zur Karte
+        # Fokus explizit zurück zur Karte
         self.iface.mapCanvas().setFocus()
+
 
     def reset_completer(self):
         """Setzt den Autovervollständiger und alle Suchzustände vollständig zurück.
@@ -759,11 +772,12 @@ class bielefeldGeosuche:
         Ergebnisanzahl. Schließt das Popup, leert das Eingabefeld, entfernt
         eine vorhandene RubberBand-Markierung und leert das Datenmodell.
         """
-        #QgsMessageLog.logMessage(
-        #    "reset_completer()",
-        #    "bielefeldGeosuche",
-        #    Qgis.Info
-        #)
+        if self.debug_log:
+            QgsMessageLog.logMessage(
+                "reset_completer()",
+                "bielefeldGeosuche",
+                Qgis.Info
+            )
         self.current_search_term = ""
         self.gemarkung = ""
         self.anfangsbuchstabe = ""

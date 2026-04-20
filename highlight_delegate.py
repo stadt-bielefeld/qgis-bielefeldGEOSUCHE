@@ -32,6 +32,7 @@ class HighlightDelegate(QStyledItemDelegate):
         super().__init__(parent)
         self.plugin = plugin
 
+
     def paint(self, painter, option, index):
         """Zeichnet einen einzelnen Listeneintrag mit HTML-Formatierung.
 
@@ -51,11 +52,12 @@ class HighlightDelegate(QStyledItemDelegate):
 
         search = self.plugin.current_search_term
 
-        #QgsMessageLog.logMessage(
-        #    "paint() search? " + search,
-        #    "bielefeldGeosuche",
-        #    Qgis.Info
-        #)
+        if self.plugin.debug_log:
+            QgsMessageLog.logMessage(
+                "paint() search? " + search,
+                "bielefeldGeosuche",
+                Qgis.Info
+            )
 
         if self.plugin.current_search_mode == "search" and not search:
             super().paint(painter, option, index)
@@ -74,11 +76,12 @@ class HighlightDelegate(QStyledItemDelegate):
                 flags=re.IGNORECASE
             )
 
-        #QgsMessageLog.logMessage(
-        #    "formatted: " + formatted,
-        #    "bielefeldGeosuche",
-        #    Qgis.Info
-        #)
+        if self.plugin.debug_log:
+            QgsMessageLog.logMessage(
+                "formatted: " + formatted,
+                "bielefeldGeosuche",
+                Qgis.Info
+            )
 
 
         # Unterscheidung ob das Suchergebnis selektiert ist oder nicht
