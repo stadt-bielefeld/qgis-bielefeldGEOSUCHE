@@ -26,7 +26,7 @@ hasProcessingProvider=no
 # Tags are comma separated with spaces allowed
 tags=python
 
-homepage=https://bielefeld01.de/geo/portal/geoportal.php
+homepage=https://www.bielefeld01.de/geo/portal/geoportal.php
 category=Plugins
 icon=icon.png
 # experimental flag
