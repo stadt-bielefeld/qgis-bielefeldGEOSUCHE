@@ -18,7 +18,7 @@ For the development of this plugin the artificial intelligences ChatGPT and Micr
 
 ### Option 2: Install from ZIP
 
-* make sure this folder is named `bielefeldGEOSUCHE` and zip this folder, e.g. into `bielefeldGEOSUCHE.zip`
+* Make sure this folder is named `bielefeldGEOSUCHE` and zip this folder, e.g. into `bielefeldGEOSUCHE.zip`
 * In QGIS > Plugins > Install from ZIP, select `bielefeldGEOSUCHE.zip`
 * That's all! You should see the search bar in the QGIS GUI and you can start searching :-)
 
