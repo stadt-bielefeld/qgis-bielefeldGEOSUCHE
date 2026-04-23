@@ -39,7 +39,10 @@ from qgis.core import (
     QgsGeometry,
     QgsMessageLog,
     Qgis,
-    QgsWkbTypes
+    QgsWkbTypes,
+    QgsCoordinateReferenceSystem,
+    QgsCoordinateTransform,
+    QgsProject
 )
 
 from qgis.utils import iface
@@ -542,6 +545,26 @@ class bielefeldGeosuche:
                 "bielefeldGeosuche",
                 Qgis.Info
             )
+
+        # WKT liegt immer in UTM32 vor
+        source_crs = QgsCoordinateReferenceSystem("EPSG:25832")
+        dest_crs = self.iface.mapCanvas().mapSettings().destinationCrs()
+
+        # Wenn das vom Benutzer verwendete KBS nicht UTM32 ist, transformiere die Geometrie in das
+        # vom Benutzer verwendete KBS
+        if source_crs != dest_crs:
+            if self.debug_log:
+                QgsMessageLog.logMessage(
+                    "Transformiere Geometrie von: " + str(source_crs.description()) + " nach " + str(dest_crs.description()),
+                    "bielefeldGeosuche",
+                    Qgis.Info
+                )
+            transform = QgsCoordinateTransform(
+                source_crs,
+                dest_crs,
+                QgsProject.instance()
+            )
+            geom.transform(transform)
 
         # Extent ermitteln
         extent = geom.boundingBox()
