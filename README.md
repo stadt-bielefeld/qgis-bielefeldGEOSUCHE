@@ -10,13 +10,19 @@ For the development of this plugin the artificial intelligences ChatGPT and Micr
 
 ## Installation
 
-### Option 1: Install from ZIP
+### Option 1: Install from official QGIS Plugin Repository
 
-* zip this folder, e.g. into `qgis-bielefeldGEOSUCHE.zip`
-* In QGIS > Plugins > Install from ZIP, select `qgis-bielefeldGEOSUCHE.zip`
-* That's all :-) You should see the search bar in the QGIS GUI
+* Open the Plugin repository in QGIS and search for bielefeldGEOSUCHE
+* Click Install
+* That's all! You should see the search bar in the QGIS GUI and you can start searching :-)
 
-### Option 2: Clone directly into the QGIS plugins folder
+### Option 2: Install from ZIP
+
+* make sure this folder is named `bielefeldGEOSUCHE` and zip this folder, e.g. into `bielefeldGEOSUCHE.zip`
+* In QGIS > Plugins > Install from ZIP, select `bielefeldGEOSUCHE.zip`
+* That's all! You should see the search bar in the QGIS GUI and you can start searching :-)
+
+### Option 3: Clone directly into the QGIS plugins folder
 
 This is useful if you want to update or modify the plugin without re-zipping.
 
@@ -30,7 +36,7 @@ Then clone this repository into that folder and make sure the folder is named `b
 
 ```bash
 cd <plugins-folder>
-git clone https://github.com/your-org/qgis-bielefeldGEOSUCHE.git bielefeldGEOSUCHE
+git clone https://github.com/stadt-bielefeld/qgis-bielefeldGEOSUCHE bielefeldGEOSUCHE
 ```
 
 Restart QGIS and enable the plugin under Plugins > Manage and Install Plugins.
