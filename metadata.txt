@@ -7,7 +7,7 @@ name=bielefeldGEOSUCHE
 qgisMinimumVersion=3.0
 qgisMaximumVersion=3.99
 description=Official geosearch functionality, just for Bielefeld!
-version=1.0
+version=1.01
 author=Marcel Tesch (620.12)
 email=marcel.tesch@bielefeld.de
 
