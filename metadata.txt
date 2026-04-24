@@ -7,9 +7,9 @@ name=bielefeldGEOSUCHE
 qgisMinimumVersion=3.0
 qgisMaximumVersion=3.99
 description=Official geosearch functionality, just for Bielefeld!
-version=1.01
-author=Marcel Tesch (620.12)
-email=marcel.tesch@bielefeld.de
+version=1.1.1
+author=Amt für Geoinformation und Kataster - Stadt Bielefeld
+email=olkd@bielefeld.de
 
 about=This Plugin brings the search functionality from the bielefeldGEOCLIENT and other Bielefeld services to QGIS. You can search for addresses, cadastre parcels, coordinates in EPSG:25832 and EPSG:4326, POIs, streets with all associated parcels and several other themes. <br>The results can include all geometry types: points, lines and polygons. The geosearch you need in Bielefeld :-)<br><br> For the development of this plugin the artificial intelligences ChatGPT and Microsoft Copilot has been used.<br><br>TODO:<br><ul><li>Support PyQT6 for QGIS 4</li></ul>
 
