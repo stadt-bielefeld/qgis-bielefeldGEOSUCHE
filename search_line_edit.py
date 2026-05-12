@@ -55,6 +55,7 @@ class SearchLineEdit(QLineEdit):
             and not self.plugin.completer.popup().isVisible()
         ):
             QTimer.singleShot(0, lambda: self.plugin.completer.complete())
+            QTimer.singleShot(0, lambda: self.plugin.completer.popup().verticalScrollBar().setValue(self.plugin.saved_scroll_pos))
 
 
     def focusInEvent(self, event):
