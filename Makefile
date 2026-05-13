@@ -1,12 +1,12 @@
 #/***************************************************************************
 # bielefeldGeosuche
 #
-# This Plugin brings the great and industry-changing search functionality from the well known bielefeldGEOCLIENT to QGIS ;-)This Plugin brings the great and industry-changing search functionality from the well known bielefeldGEOCLIENT to QGIS ;-)
+# This Plugin brings the search functionality from the bielefeldGEOCLIENT and easy access to Bielefeld data to QGIS
 #							 -------------------
 #		begin				: 2026-02-24
 #		git sha				: $Format:%H$
-#		copyright			: (C) 2026 by Marcel Tesch (620.12)
-#		email				: marcel.tesch@bielefeld.de
+#		copyright			: (C) 2026 by Amt für Geoinformation und Kataster - Stadt Bielefeld
+#		email				: olkd@bielefeld.de
 # ***************************************************************************/
 #
 #/***************************************************************************

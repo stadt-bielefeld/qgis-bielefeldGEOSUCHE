@@ -9,8 +9,8 @@ durch Fettschrift hervorhebt.
 import re
 
 from qgis.PyQt.QtWidgets import QStyledItemDelegate, QStyle, QMessageBox
-from qgis.PyQt.QtGui import QTextDocument
-from qgis.PyQt.QtCore import Qt, QEvent, QRect
+from qgis.PyQt.QtGui import QTextDocument, QFontMetrics
+from qgis.PyQt.QtCore import Qt, QEvent, QRect, QSize
 
 from qgis.core import QgsMessageLog, Qgis
 
@@ -46,9 +46,6 @@ class HighlightDelegate(QStyledItemDelegate):
             index (QModelIndex): Modellindex des darzustellenden Eintrags.
         """
         text = index.data(Qt.DisplayRole)
-        
-        if len(text) > 50:
-            text = text[:47] + "..."
 
         search = self.plugin.current_search_term
 
@@ -63,27 +60,6 @@ class HighlightDelegate(QStyledItemDelegate):
             super().paint(painter, option, index)
             return
 
-        formatted = text
-        # Teile fett markieren (case insensitive)
-        if self.plugin.current_search_mode == "search" and search:
-            tokens = [t for t in search.split() if len(t) > 1]
-            pattern = "(" + "|".join(tokens) + ")"
-
-            formatted = re.sub(
-                pattern,
-                r"<b>\1</b>",
-                text,
-                flags=re.IGNORECASE
-            )
-
-        if self.plugin.debug_log:
-            QgsMessageLog.logMessage(
-                "formatted: " + formatted,
-                "bielefeldGeosuche",
-                Qgis.Info
-            )
-
-
         # Unterscheidung ob das Suchergebnis selektiert ist oder nicht
         if option.state & QStyle.State_Selected:
             painter.fillRect(option.rect, option.palette.highlight())
@@ -91,13 +67,9 @@ class HighlightDelegate(QStyledItemDelegate):
         else:
             text_color = option.palette.text().color().name()
 
-        if len(self.plugin.search_metadata) > 0:
-            formatted = f'<button style="font-weight:bold;color:#000;">&nbsp;&nbsp;i&nbsp;&nbsp;</button> <span style="color:{text_color};">{formatted}</span>'
-        else:
-            formatted = f'<span style="color:{text_color};">{formatted}</span>'
-
-        doc = QTextDocument()
-        doc.setHtml(formatted)
+        formatted = self.formatText(text, search, text_color)
+        
+        doc = self.buildDocument(formatted)
         doc.setTextWidth(option.rect.width())
 
         painter.save()
@@ -110,10 +82,102 @@ class HighlightDelegate(QStyledItemDelegate):
 
         painter.translate(option.rect.left(), y)
 
+        popup = self.plugin.completer.popup()
+
+        viewport_width = popup.viewport().width()
+
+        scrollbar_width = popup.style().pixelMetric(
+            popup.style().PM_ScrollBarExtent
+        )
+
+        if self.plugin.debug_log:
+            QgsMessageLog.logMessage(
+                "formatted: " + formatted + ", viewport_width: " + str(viewport_width) + ", option.rect.width(): " + str(option.rect.width()) + ", doc.size().width(): " + str(doc.size().width()) + ", doc.pageSize(): " + str(doc.pageSize()) + ", scrollbar_width: " + str(scrollbar_width),
+                "bielefeldGeosuche",
+                Qgis.Info
+            )
         
 
         doc.drawContents(painter)
         painter.restore()
+
+
+    def sizeHint(self, option, index):
+        """Berechnet die Größe einer Suchergebnis-Zeile.
+
+        Args:
+            option (QStyleOptionViewItem): Stiloptionen für das Element (Position, Zustand, Palette).
+            index (QModelIndex): Modellindex des darzustellenden Eintrags.
+        """
+        text = index.data(Qt.DisplayRole) 
+
+        search = self.plugin.current_search_term
+        formatted = self.formatText(text, search, option.palette.text().color().name())
+        
+        doc = self.buildDocument(formatted)
+
+        exact_width = doc.idealWidth()
+
+        fm = QFontMetrics(option.font)
+        line_height = fm.height()
+
+        if  option.rect.width() < exact_width:
+            line_height = line_height * 2
+        else:
+            line_height = line_height * 1.1
+
+        return QSize(
+            int(option.rect.width()),
+            int(line_height)
+        )
+
+
+    def formatText(self, text, search, text_color):
+        """Hilfsmethode um den Suchtext in den Suchergebnissen hervorzuheben.
+
+        Args:
+            text (str): Text eines Suchergebnisses
+            search (str): Suchstring
+            text_color (str): Hex-Farbe
+
+        Returns:
+            Str: HTML-formatierten Text.
+        """
+        formatted = text
+        # Teile fett markieren (case insensitive)
+        if self.plugin.current_search_mode == "search" and search:
+            tokens = [re.escape(t) for t in search.split() if len(t) > 1]
+
+            if tokens:
+                pattern = "(" + "|".join(tokens) + ")"
+
+                formatted = re.sub(
+                    pattern,
+                    r"<b>\1</b>",
+                    text,
+                    flags=re.IGNORECASE
+                )
+
+        if len(self.plugin.search_metadata) > 0:
+            formatted = f'<span style="font-weight:bold;color:#000;">&nbsp;&nbsp;i&nbsp;&nbsp;</span> <span style="color:{text_color};">{formatted}</span>'
+        else:
+            formatted = f'<span style="color:{text_color};">{formatted}</span>'
+
+        return formatted
+
+
+    def buildDocument(self, formatted):
+        """Hilfsmethode um das QTextDocument Objekt zu erstellen.
+
+        Args:
+            formatted (str): HTML-formatierter Text
+
+        Returns:
+            QTextDocument: HTML-Textdokument eines Suchergebnisses.
+        """
+        doc = QTextDocument()
+        doc.setHtml(formatted)
+        return doc
 
 
     def editorEvent(self, event, model, option, index):
@@ -139,7 +203,15 @@ class HighlightDelegate(QStyledItemDelegate):
         
         if len(self.plugin.search_metadata) > 0 and event.type() == QEvent.MouseButtonPress:
 
-            icon_rect = QRect(option.rect.left(), option.rect.top(), 20, option.rect.height())
+            fm = QFontMetrics(option.font)
+            line_height = fm.height()
+
+            icon_rect = QRect(
+                option.rect.left(),
+                option.rect.top(),
+                20,
+                line_height
+            )
 
             text = index.data(Qt.DisplayRole)
 

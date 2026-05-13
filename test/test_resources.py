@@ -8,9 +8,9 @@
 
 """
 
-__author__ = 'marcel.tesch@bielefeld.de'
+__author__ = 'olkd@bielefeld.de'
 __date__ = '2026-02-24'
-__copyright__ = 'Copyright 2026, Marcel Tesch (620.12)'
+__copyright__ = 'Copyright 2026, Amt für Geoinformation und Kataster - Stadt Bielefeld'
 
 import unittest
 

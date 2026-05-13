@@ -8,8 +8,8 @@
                               -------------------
         begin                : 2026-02-24
         git sha              : $Format:%H$
-        copyright            : (C) 2026 by Marcel Tesch (620.12)
-        email                : marcel.tesch@bielefeld.de
+        copyright            : (C) 2026 by Amt für Geoinformation und Kataster - Stadt Bielefeld
+        email                : olkd@bielefeld.de
  ***************************************************************************/
 
 /***************************************************************************
@@ -221,12 +221,13 @@ class bielefeldGeosuche:
         self.completer.setCaseSensitivity(Qt.CaseInsensitive)
         self.completer.activated.connect(self.result_selected)
         self.completer.setCompletionMode(QCompleter.UnfilteredPopupCompletion)
+        # Wenn man über den letzten Eintrag in der Liste hinaus navigiert, landet man wieder beim ersten Eintrag
         self.completer.setWrapAround(True)
         
         # zur benutzerdefinierten Formatierung von Suchergebnissen
         self.delegate = HighlightDelegate(self)
         self.completer.popup().setItemDelegate(self.delegate)
-        self.completer.popup().setWordWrap(False)
+        self.completer.popup().setWordWrap(True)
         self.completer.popup().setMinimumWidth(300)
         self.popup_filter = PopupEventFilter(self)
         self.completer.popup().installEventFilter(self.popup_filter)
@@ -870,6 +871,12 @@ class bielefeldGeosuche:
 
     
     def add_ows_as_group(self, ows_url, group_name):
+        """Lädt einen WMS oder WFS in das Projekt.
+
+        Args:
+            ows_url (str): URL des hinzuzuladenden Dienstes.
+            group_name (str): Gruppenname des hinzuzuladenden Dienstes.
+        """
         ows_type = self.current_search_mode.upper()
 
         if self.debug_log:
